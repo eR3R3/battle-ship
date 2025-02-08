@@ -195,6 +195,23 @@ fn get_player_input() -> (usize, usize) {
     }
 }
 
+fn get_player_direction() -> bool {
+    loop {
+        print!("\x1b[1;37mEnter direction to place the ship, 0 for horizontal placement, 1 for vertical placement: \x1b[0m");
+        io::stdout().flush().unwrap(); // Ensure the prompt is displayed before input is typed
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let direction = input.trim().parse::<usize>().expect("Invalid input");
+        if direction == 0 {
+            return true;
+        } else if direction == 1 {
+            return false;
+        } else {
+            println!("\x1b[1;31mInvalid input. 0 for horizontal placement and 1 for vertical placement.\x1b[0m");
+        }
+    }
+}
+
 // Function to generate a random move for the opponent
 fn generate_opponent_move() -> (usize, usize) {
     let mut rng = rand::rng(); // Use a random number generator for move selection
