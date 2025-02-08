@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use rand::{random_range, Rng};
 
 const BOARD_SIZE: usize = 10;
@@ -24,7 +24,7 @@ impl Board{
         }
     }
 
-    fn place_ship(&mut self, size: usize){
+    fn place_ship_random(&mut self, size: usize){
         let mut rng = rand::rng();
         loop{
             let row = rng.random_range(0..BOARD_SIZE);
@@ -38,6 +38,32 @@ impl Board{
                 }
                 break;
             } else {
+                continue;
+            }
+        }
+    }
+
+    fn place_ship_manual(&mut self, size: usize, i: usize){
+        loop {
+            println!();
+            println!("enter your {}th ship's head's position and direction, this ship has a length of {}", i + 1, size);
+            let position = get_player_input();
+            let row = position.0;
+            let col = position.1;
+            let direction = get_player_direction();
+            if self.can_place_ship(row, col, size, direction){
+                for i in 0..size {
+                    let (row, col) = if direction { (row, col + i) } else { (row + i, col) };
+                    self.grid[row][col] = CellState::Ship;
+                    self.ships.push((row, col));
+                }
+                println!("this is your current game board");
+                println!();
+                self.display(false);
+                break;
+            } else {
+                println!("\x1b[1;31mthe position and direction you enter is not valid, it may overlap with the \
+                exsiting ones or out of the game board, please re enter\x1b[0m");
                 continue;
             }
         }
@@ -76,7 +102,7 @@ impl Board{
     fn display(&self, hide_ships: bool){
         print!("   ");
         for i in 0..BOARD_SIZE {
-            print!("{} ", i);
+            print!("{}  ", i);
         }
         println!("");
         for (i, row) in self.grid.iter().enumerate() {
@@ -85,14 +111,14 @@ impl Board{
                 match cell {
                     CellState::Empty => {
                         if hide_ships {
-                            print!("   ");
+                            print!(" \u{25A1} ");
                         } else {
                             print!(" \u{25A1} ");
                         }
                     }
                     CellState::Ship => {
                         if hide_ships {
-                            print!("   ");
+                            print!(" \u{25A1} ");
                         } else {
                             print!(" \u{25A0} ");
                         }
@@ -114,19 +140,38 @@ fn main() {
     // Initialize the game board for the player and the opponent
     let mut player_board = Board::new();
     let mut opponent_board = Board::new();
+    print!("if you want to play the mode that can place the ship yourself, enter 0, if you want the ships to be placed randomly, enter 1: ");
+    io::stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read choose mode");
+    let choice = input.trim().parse::<usize>().expect("Invalid choice input");
+    if choice == 0 {
+        player_board.place_ship_manual(5, 0); // Aircraft Carrier
+        player_board.place_ship_manual(4, 1); // Battleship
+        player_board.place_ship_manual(3, 2); // Cruiser
+        player_board.place_ship_manual(3, 3); // Submarine
+        player_board.place_ship_manual(2, 4); // Destroyer
+    } else if choice == 1 {
+        player_board.place_ship_random(5); // Aircraft Carrier
+        player_board.place_ship_random(4); // Battleship
+        player_board.place_ship_random(3); // Cruiser
+        player_board.place_ship_random(3); // Submarine
+        player_board.place_ship_random(2); // Destroyer
+    } else {
+        panic!("Invalid choice");
+    }
 
-    // Place ships on the boards
-    player_board.place_ship(5); // Aircraft Carrier
-    player_board.place_ship(4); // Battleship
-    player_board.place_ship(3); // Cruiser
-    player_board.place_ship(3); // Submarine
-    player_board.place_ship(2); // Destroyer
+    opponent_board.place_ship_random(5);
+    opponent_board.place_ship_random(4);
+    opponent_board.place_ship_random(3);
+    opponent_board.place_ship_random(3);
+    opponent_board.place_ship_random(2);
 
-    opponent_board.place_ship(5); // Similarly place ships for the opponent
-    opponent_board.place_ship(4);
-    opponent_board.place_ship(3);
-    opponent_board.place_ship(3);
-    opponent_board.place_ship(2);
+    println!();
+    println!();
+    println!("\x1bGame Start\x1b[0m");
+    println!();
+    println!();
 
     // Main game loop
     loop {
@@ -178,14 +223,14 @@ fn main() {
 // Function to get player input for firing
 fn get_player_input() -> (usize, usize) {
     loop {
-        print!("\x1b[1;37mEnter coordinates to fire (row, col): \x1b[0m");
+        print!("\x1b[1;37mEnter coordinates (row, col): \x1b[0m");
         io::stdout().flush().unwrap(); // Ensure the prompt is displayed before input is typed
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Failed to read line");
         let coordinates: Vec<usize> = input
             .trim()
             .split(',')
-            .map(|s| s.trim().parse().expect("Invalid input"))
+            .map(|s| s.trim().parse::<usize>().expect("Invalid input"))
             .collect();
         if coordinates.len() == 2 && coordinates[0] < BOARD_SIZE && coordinates[1] < BOARD_SIZE {
             return (coordinates[0], coordinates[1]); // Return valid coordinates
